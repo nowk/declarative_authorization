@@ -616,8 +616,21 @@ module Authorization
       object = @attribute_check ? load_object(contr) : nil
       privilege = @privilege || :"#{contr.action_name}"
 
+      # THIS IS A quick HACK to enable multi-role sessions under devise
+      # The main problem arises after a `current_user` is logged in.
+      # this permit! option always scopes to `user` even when 
+      # #current_user= has been set to `current_admin`
+      # look for a method to define the declarative_devise_scope to be
+      # used at each request. Default back to declarative_authorizations'
+      # default of `user`
+      #
+      # Example to fully employ this:
+      # https://gist.github.com/1463173 
+      #
+      devise_decla_scope = contr.send(:declarative_devise_scope) || 'user'
+
       contr.authorization_engine.permit!(privilege, 
-                                         :user => contr.send(:current_user),
+                                         :user => contr.send("current_#{devise_decla_scope}"),
                                          :object => object,
                                          :skip_attribute_test => !@attribute_check,
                                          :context => @context || contr.class.decl_auth_context)
